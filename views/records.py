@@ -21,9 +21,14 @@ def render(data: DashboardData) -> None:
     comeback = comeback_table(scores).sort_values("total_recovered", ascending=False)
     records = [
         ("Highest single-GW score", f"{high['manager']} · {high['podium_points']:.0f} (GW{int(high['gameweek'])})"),
+        ("Highest single-GW score to lose", _score_record(scores, "highest_losing")),
         ("Lowest single-GW score", f"{low['manager']} · {low['podium_points']:.0f} (GW{int(low['gameweek'])})"),
+        ("Lowest single-GW score to win", _score_record(scores, "lowest_winning")),
         ("Highest cumulative total", f"{current['manager']} · {current['cumulative_points']:.0f} pts"),
         ("Most Gameweek wins", _record_holder(data.stats, "gameweek_wins", "wins")),
+        ("Longest win streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
+        ("Biggest winning margin", _winning_margin_record(scores, biggest=True)),
+        ("Smallest winning margin", _winning_margin_record(scores, biggest=False)),
         ("Most podium appearances", _record_holder(data.podium_table, "appearances", "podiums")),
         ("Most consecutive podium appearances", _top_n_record(scores, "podium_points", 3, "run")),
         ("Most consistent", f"{consistency.iloc[0]['manager']} · lowest CV"),
@@ -35,7 +40,6 @@ def render(data: DashboardData) -> None:
         ("Most GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "count")),
         ("Most consecutive GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "run")),
         ("Longest time in last place", _longest_run(scores, "last")),
-        ("Longest winning streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
         ("Biggest improvement between GWs", _biggest_improvement(scores)),
         ("Biggest drop between GWs", _biggest_drop(scores)),
         ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['total_recovered']:.0f} pts"),
@@ -101,6 +105,38 @@ def _streak_holder(frame, column: str, suffix: str) -> str:
     highest = frame[column].max()
     names = ", ".join(frame.loc[frame[column] == highest, "manager"].tolist())
     return f"{names} · {highest} {suffix}"
+
+
+def _score_record(scores: pd.DataFrame, record: str) -> str:
+    ranked = scores.assign(
+        weekly_rank=scores.groupby("gameweek")["podium_points"].rank(method="min", ascending=False)
+    )
+    candidates = ranked[ranked["weekly_rank"] > 1] if record == "highest_losing" else ranked[ranked["weekly_rank"] == 1]
+    if candidates.empty:
+        return "—"
+    row = candidates.loc[
+        candidates["podium_points"].idxmax() if record == "highest_losing" else candidates["podium_points"].idxmin()
+    ]
+    return f"{row['manager']} · {row['podium_points']:.0f} (GW{int(row['gameweek'])})"
+
+
+def _winning_margin_record(scores: pd.DataFrame, biggest: bool) -> str:
+    margins = []
+    for gameweek, frame in scores.groupby("gameweek"):
+        ordered = frame.sort_values("podium_points", ascending=False)
+        if len(ordered) < 2:
+            continue
+        winner_score = ordered.iloc[0]["podium_points"]
+        second_score = ordered.iloc[1]["podium_points"]
+        margin = winner_score - second_score
+        if margin <= 0:
+            continue
+        winners = ordered.loc[ordered["podium_points"] == winner_score, "manager"]
+        margins.extend((manager, int(gameweek), margin) for manager in winners)
+    if not margins:
+        return "—"
+    manager, gameweek, margin = (max if biggest else min)(margins, key=lambda item: item[2])
+    return f"{manager} (GW{gameweek}) · {margin:.0f} pts"
 
 
 def _biggest_improvement(scores: pd.DataFrame) -> str:
