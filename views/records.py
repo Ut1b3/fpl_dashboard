@@ -25,22 +25,21 @@ def render(data: DashboardData) -> None:
         ("Highest cumulative total", f"{current['manager']} · {current['cumulative_points']:.0f} pts"),
         ("Most Gameweek wins", _record_holder(data.stats, "gameweek_wins", "wins")),
         ("Most podium appearances", _record_holder(data.podium_table, "appearances", "podiums")),
+        ("Most consecutive podium appearances", _top_n_record(scores, "podium_points", 3, "run")),
         ("Most consistent", f"{consistency.iloc[0]['manager']} · lowest CV"),
         ("Most volatile", f"{volatility.iloc[0]['manager']} · highest CV"),
         ("Longest above-average run", _streak_holder(streak, "longest_above", "weeks")),
         ("Most above-average weeks", _record_holder(data.stats, "above_average_weeks", "weeks")),
         ("Longest time in 1st place", _longest_run(scores, "first")),
+        ("Most GWs in cumulative 1st place", _top_n_record(scores, "cumulative_points", 1, "count")),
         ("Longest time in last place", _longest_run(scores, "last")),
         ("Longest winning streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
         ("Biggest improvement between GWs", _biggest_improvement(scores)),
         ("Biggest drop between GWs", _biggest_drop(scores)),
         ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['points_recovered']:.0f} pts"),
         ("Largest first-second gap", f"{_max_first_second_gap(scores):.0f} pts"),
-        ("Most GWs in weekly top 3", _top_n_record(scores, "podium_points", 3, "count")),
-        ("Most consecutive GWs in weekly top 3", _top_n_record(scores, "podium_points", 3, "run")),
         ("Most GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "count")),
         ("Most consecutive GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "run")),
-        ("Most GWs in cumulative 1st place", _top_n_record(scores, "cumulative_points", 1, "count")),
     ]
     st.dataframe(pd.DataFrame(records, columns=["Record", "Holder"]), use_container_width=True, hide_index=True)
     st.markdown("#### Manager achievements")
@@ -58,8 +57,6 @@ def render(data: DashboardData) -> None:
         if row["appearances"] == data.stats["appearances"].max():
             achievements.append((name, "The Podium Specialist"))
     for label, column, n, mode in [
-        ("Most GWs in Weekly Top 3", "podium_points", 3, "count"),
-        ("Longest Weekly Top 3 Run", "podium_points", 3, "run"),
         ("Most GWs in Cumulative Top 3", "cumulative_points", 3, "count"),
         ("Longest Cumulative Top 3 Run", "cumulative_points", 3, "run"),
         ("Most GWs in Cumulative 1st Place", "cumulative_points", 1, "count"),
