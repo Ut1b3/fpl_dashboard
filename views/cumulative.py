@@ -29,7 +29,7 @@ def render(data: DashboardData) -> None:
         render_chart(px.line(first_second, x="gameweek", y="gap", markers=True,
                              title="Gap between first and second"))
     with right:
-        comeback = comeback_table(data.scores).head(8)
+        comeback = comeback_table(data.scores).drop(columns="total_recovered").head(8)
         st.markdown("**Points recovered against the leader**")
         st.dataframe(comeback.rename(columns={
             "manager": "Manager", "initial_deficit": "Initial deficit",

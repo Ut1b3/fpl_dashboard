@@ -21,6 +21,8 @@ def test_comeback_table_computes_points_recovered():
     assert result.loc["B", "latest_deficit"] == 0
     assert result.loc["B", "points_recovered"] == 20
     assert result.loc["A", "points_recovered"] == -10
+    assert result.loc["B", "previous_deficit"] == 20
+    assert result.loc["B", "total_recovered"] == 20
 
 
 ROOT = Path(__file__).resolve().parents[1]

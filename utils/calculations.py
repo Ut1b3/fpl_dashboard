@@ -92,7 +92,8 @@ def comeback_table(scores: pd.DataFrame) -> pd.DataFrame:
         "initial_deficit": start.values,
         "previous_deficit": previous.values,
         "latest_deficit": end.values,
-        "points_recovered": start.values - end.values,
+        "points_recovered": previous.values - end.values,
+        "total_recovered": start.values - end.values,
     }).sort_values("points_recovered", ascending=False)
 
 

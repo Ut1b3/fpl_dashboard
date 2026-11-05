@@ -18,7 +18,7 @@ def render(data: DashboardData) -> None:
     volatility = data.stats.sort_values("coefficient_of_variation", ascending=False)
     streak = streaks(scores)
     winning_streak = longest_winning_streaks(scores)
-    comeback = comeback_table(scores)
+    comeback = comeback_table(scores).sort_values("total_recovered", ascending=False)
     records = [
         ("Highest single-GW score", f"{high['manager']} · {high['podium_points']:.0f} (GW{int(high['gameweek'])})"),
         ("Lowest single-GW score", f"{low['manager']} · {low['podium_points']:.0f} (GW{int(low['gameweek'])})"),
@@ -38,7 +38,7 @@ def render(data: DashboardData) -> None:
         ("Longest winning streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
         ("Biggest improvement between GWs", _biggest_improvement(scores)),
         ("Biggest drop between GWs", _biggest_drop(scores)),
-        ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['points_recovered']:.0f} pts"),
+        ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['total_recovered']:.0f} pts"),
         ("Largest first-second gap", f"{_max_first_second_gap(scores):.0f} pts"),
     ]
     st.dataframe(pd.DataFrame(records, columns=["Record", "Holder"]), use_container_width=True, hide_index=True)
