@@ -7,6 +7,7 @@ import streamlit as st
 from utils.calculations import longest_winning_streaks, streaks
 from utils.data_loader import DashboardData
 from views.common import heading, metric_cards, render_chart, run_standalone_page
+from views.records import _top_n_values
 
 
 def _notables(data: DashboardData) -> pd.DataFrame:
@@ -110,13 +111,14 @@ def render(data: DashboardData) -> None:
         lambda r: "—" if pd.isna(r["biggest_drop"]) else f"{r['biggest_drop']:+.0f} (GW{r['drop_gw']})", axis=1)
     table["Best position"] = table.apply(lambda r: f"{r['best_position']} (GW{r['best_position_gw']})", axis=1)
     table["above_weeks"] = table["manager"].map(data.stats.set_index("manager")["above_average_weeks"]).astype(int)
+    table["podium_run"] = table["manager"].map(_top_n_values(data.scores, "podium_points", 3, "run"))
     display = table[[
         "manager", "Best week", "Worst week", "Biggest jump", "Biggest drop", "Best position",
-        "gw_wins", "podiums", "longest_win_streak", "longest_above", "above_weeks",
+        "gw_wins", "longest_win_streak", "podiums", "podium_run", "longest_above", "above_weeks",
     ]].rename(columns={
         "manager": "Manager", "gw_wins": "GW wins", "podiums": "Podiums",
-        "longest_win_streak": "Win streak", "longest_above": "Above-avg run",
-        "above_weeks": "Above-avg weeks",
+        "longest_win_streak": "Longest win run", "podium_run": "Longest podium run",
+        "longest_above": "Longest above-avg run", "above_weeks": "Above-avg weeks",
     })
     st.dataframe(display, use_container_width=True, hide_index=True)
     st.caption("Scores exclude chip bonus points. Jumps and drops compare each Gameweek with the previous one.")
