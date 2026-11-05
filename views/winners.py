@@ -60,12 +60,6 @@ def render(data: DashboardData) -> None:
         "podium_rank", "manager", "podium_points", "chip_bonus", "adjusted_gw_points", "cumulative_points", "league_position",
     ]].copy()
     table.columns = ["Rank", "Manager", "Podium points", "Chip bonus", "Total GW points", "Season total", "League position"]
-    winning_margin = _margin(scores) if len(scores) > 1 else None
-    table.insert(
-        3,
-        "Winning margin",
-        table["Rank"].map(lambda rank: winning_margin if rank == 1 else None),
-    )
     st.dataframe(table, use_container_width=True, hide_index=True)
     st.download_button("Download this table (CSV)", table.to_csv(index=False).encode("utf-8"),
                        f"fpl_gw{week}_table.csv", "text/csv")
