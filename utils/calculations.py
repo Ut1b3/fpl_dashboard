@@ -86,9 +86,11 @@ def comeback_table(scores: pd.DataFrame) -> pd.DataFrame:
     gaps = cumulative.rsub(cumulative.max(axis=1), axis=0)
     start = gaps.iloc[0]
     end = gaps.iloc[-1]
+    previous = gaps.iloc[-2] if len(gaps) > 1 else start
     return pd.DataFrame({
         "manager": gaps.columns,
         "initial_deficit": start.values,
+        "previous_deficit": previous.values,
         "latest_deficit": end.values,
         "points_recovered": start.values - end.values,
     }).sort_values("points_recovered", ascending=False)

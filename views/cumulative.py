@@ -33,6 +33,7 @@ def render(data: DashboardData) -> None:
         st.markdown("**Points recovered against the leader**")
         st.dataframe(comeback.rename(columns={
             "manager": "Manager", "initial_deficit": "Initial deficit",
+            "previous_deficit": "Previous deficit",
             "latest_deficit": "Latest deficit", "points_recovered": "Points recovered",
         }).round(1), use_container_width=True, hide_index=True)
     st.markdown("#### Latest position movement")
