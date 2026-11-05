@@ -86,6 +86,7 @@ def render(data: DashboardData) -> None:
             "Gameweek": f"GW{int(gw)}",
             "Winner(s)": ", ".join(winner_names) or "—",
             "Winning score": winner_score,
+            "Winning margin": _margin(valid) if len(valid) > 1 else None,
             "League average": round(valid.mean(), 1) if not valid.empty else None,
             "Lowest score": valid.min() if not valid.empty else None,
         })
