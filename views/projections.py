@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from pages.common import heading, render_chart, run_standalone_page
+from views.common import heading, render_chart, run_standalone_page
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData
 from utils.calculations import simulate_season

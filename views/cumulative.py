@@ -3,7 +3,7 @@ from __future__ import annotations
 import plotly.express as px
 import streamlit as st
 
-from pages.common import heading, manager_filter, render_chart, run_standalone_page
+from views.common import heading, manager_filter, render_chart, run_standalone_page
 from utils.calculations import comeback_table, title_race
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData
@@ -19,7 +19,7 @@ def render(data: DashboardData) -> None:
                       color="manager", color_discrete_sequence=COLORS, markers=True, title="Cumulative adjusted points")
         render_chart(fig)
     with right:
-        gap = pivot.max(axis=1).to_frame("leader_points") - pivot
+        gap = pivot.rsub(pivot.max(axis=1), axis=0)
         gap = gap.reset_index().melt(id_vars="gameweek", var_name="manager", value_name="points_behind_leader")
         fig = px.line(gap[gap["manager"].isin(selected)], x="gameweek", y="points_behind_leader",
                       color="manager", color_discrete_sequence=COLORS, markers=True, title="Points behind the leader")

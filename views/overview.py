@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from pages.common import heading, metric_cards, render_chart, run_standalone_page
+from views.common import heading, metric_cards, render_chart, run_standalone_page
 from utils.calculations import leaderboard
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData
@@ -56,7 +56,8 @@ def render(data: DashboardData) -> None:
         "adjusted_gw_points", "points_behind_leader", "movement",
     ]]
     shown.columns = ["Rank", "Manager", "Total points", "Average points", "Latest GW", "Behind leader", "Movement"]
-    st.dataframe(shown, use_container_width=True, hide_index=True)
+    styled = shown.style.map(_movement_style, subset=["Movement"]).format({"Movement": lambda v: "" if pd.isna(v) else f"{int(v):+d}"})
+    st.dataframe(styled, use_container_width=True, hide_index=True)
     csv = shown.to_csv(index=False).encode("utf-8")
     st.download_button("Download standings CSV", csv, "fpl_leaderboard.csv", "text/csv")
     st.markdown("#### Title race")
@@ -73,6 +74,14 @@ def render(data: DashboardData) -> None:
     st.markdown(f"#### GW{latest} snapshot")
     high, low = latest_week["podium_points"].max(), latest_week["podium_points"].min()
     st.caption(f"Average {weekly_average:.1f} · high {high:.0f} · low {low:.0f} · league rank ties share the same position.")
+
+
+def _movement_style(value) -> str:
+    if pd.isna(value) or value == 0:
+        return ""
+    if value > 0:
+        return "background-color: #00ff85; color: #37003c; font-weight: 700"
+    return "background-color: #e90052; color: #ffffff; font-weight: 700"
 
 
 if __name__ == "__main__":

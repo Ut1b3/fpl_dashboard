@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from pages.common import heading, render_chart, run_standalone_page
+from views.common import heading, render_chart, run_standalone_page
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData
 
@@ -20,13 +20,13 @@ def render(data: DashboardData) -> None:
     st.markdown("#### Deployment and scoring details")
     details = chips[["manager", "chip_type", "chip_number", "gameweek", "actual_points", "chip_bonus", "usage_status"]].rename(columns={
         "manager": "Manager", "chip_type": "Chip", "chip_number": "Chip number",
-        "gameweek": "Gameweek", "actual_points": "Recorded points",
+        "gameweek": "Gameweek", "actual_points": "Extra chip points",
         "chip_bonus": "Adjustment", "usage_status": "Status",
     })
     st.dataframe(details, use_container_width=True, hide_index=True)
     review = chips[chips["usage_status"].str.startswith("review")]
     if not review.empty:
-        st.warning("Some chip records need administrator review. Unverified chip adjustments are not guessed.")
+        st.warning("Some chip records need administrator review. Chip adjustments are never guessed.")
         st.dataframe(review[["manager", "chip_label", "gameweek", "actual_points", "usage_status"]], use_container_width=True, hide_index=True)
     used = chips[chips["usage_status"].eq("used")].dropna(subset=["gameweek"])
     if used.empty:
@@ -39,12 +39,12 @@ def render(data: DashboardData) -> None:
     measured = chips.dropna(subset=["actual_points"])
     if not measured.empty:
         fig = px.box(measured, x="chip_type", y="actual_points", color="chip_type",
-                     color_discrete_sequence=COLORS, points="all", title="Recorded chip point values")
+                     color_discrete_sequence=COLORS, points="all", title="Extra points added by chips")
         render_chart(fig)
         st.dataframe(measured.groupby("chip_type")["actual_points"].agg(
             deployments="count", average="mean", highest="max", lowest="min"
         ).reset_index().round(1), use_container_width=True, hide_index=True)
-        st.caption("Recorded chip points are not automatically treated as an adjustment unless the chip scoring convention is verified.")
+        st.caption("Chip points are the extra points a chip added. They count towards total points but are removed from podium scoring.")
     unused = chips.assign(unused=chips["usage_status"].eq("unused")).groupby("manager").agg(
         unused=("unused", "sum"),
         used=("usage_status", lambda values: int((values == "used").sum())),

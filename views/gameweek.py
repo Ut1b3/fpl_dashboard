@@ -3,7 +3,7 @@ from __future__ import annotations
 import plotly.express as px
 import streamlit as st
 
-from pages.common import heading, metric_cards, render_chart, run_standalone_page, selected_week
+from views.common import heading, metric_cards, render_chart, run_standalone_page, selected_week
 from utils.calculations import gameweek_leaderboard
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData
@@ -33,6 +33,8 @@ def render(data: DashboardData) -> None:
         fig = px.bar(frame.sort_values("podium_points"), x="podium_points", y="manager", orientation="h",
                      color="podium_points", color_continuous_scale=["#e90052", "#00ff85"],
                      title=f"GW{week} actual score leaderboard")
+        fig.add_vline(x=frame["podium_points"].mean(), line_dash="dash", line_color="#04f5ff",
+                      annotation_text=f"Avg {frame['podium_points'].mean():.1f}")
         render_chart(fig)
     with right:
         render_chart(px.histogram(frame, x="podium_points", nbins=8, title="Score distribution"))

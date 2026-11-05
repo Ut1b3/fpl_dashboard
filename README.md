@@ -7,17 +7,19 @@ Interactive Streamlit and Plotly analytics for a 14-manager Fantasy Premier Leag
 - Ten dashboard views: overview, historical position, performance, title race, manager comparison, Gameweek centre, podiums, chips, records and projections.
 - A centralized Excel ingestion and scoring layer, with validated league standings, actual-score podiums and chip-adjusted cumulative totals.
 - CSV download for the overview leaderboard, interactive Plotly visualisations, and 10,000 resampled season simulations.
-- Data quality notices for partial Gameweeks, name mismatches, missing chip details and unverified Bench Boost scoring.
+- Data quality notices for partial Gameweeks, name mismatches and missing chip details.
 
 ## Scoring and validation
 
-`FPL Points.xlsx` is the adjusted Gameweek score source and its `Total` column is a reconciliation reference. The chips workbook can provide chip-free points for Gameweek podiums. For a validated Triple Captain record, the dashboard derives:
+`FPL Points.xlsx` is the Gameweek score source (including any chip bonus) and its `Total` column is a reconciliation reference. The chips workbook records the extra points each chip added. For every used Triple Captain or Bench Boost, the dashboard derives:
 
-`chip bonus = adjusted workbook score - chip-free actual points`
+`podium points = workbook Gameweek score - chip extra points`
 
-`adjusted Gameweek points = podium points + chip bonus`
+`adjusted Gameweek points = workbook Gameweek score = podium points + chip bonus`
 
-For the supplied workbooks, Utibe's GW7 is 60 podium points plus a 13-point Triple Captain adjustment, for 73 adjusted points. The existing Total column matches all 14 managers' completed GW1–GW9 sums. No Bench Boost is recorded in the supplied chip workbook. If a Bench Boost is later marked used, it is flagged for administrator review because the workbook does not establish whether the recorded bench points mean the full Gameweek score or the incremental bonus. The app does not guess.
+Example: a manager who would have scored 50 and scores 75 with a Triple Captain has 25 chip points. Their total points include all 75, but podium places use 50.
+
+Totals and league positions include chip points; podium and Gameweek-winner analytics exclude them.
 
 Ties in overall standings use shared competition ranking (`1, 1, 3`). Tables use manager name as a stable display sort when points tie. For the podium mini-competition, managers tied across podium places split the points for the occupied places; ties extending beyond third receive no award.
 
@@ -42,9 +44,7 @@ Replace `data/FPL Points.xlsx` and `data/FPL Chips.xlsx` with updated versions, 
 
 To add a Gameweek, populate its `GW n` column for every manager. A partially populated column is excluded and shown as a validation notice. The `Total` column should remain the cumulative adjusted points and is checked, not added a second time.
 
-For a used Triple Captain, provide the deployment as `GWn` in the relevant `... used` field and the chip-free score in its actual-points field. The adjusted score remains in the Gameweek column of the points workbook.
-
-For Bench Boost, keep the deployment and recorded bench score in the corresponding fields. Until the workbook's convention is established (whether that field is the incremental bonus or a different quantity), the dashboard marks the row for review and does not apply an inferred bonus. Reconcile this convention with the competition administrator before relying on those scores.
+For a used Triple Captain or Bench Boost, enter the deployment as `GWn` in the relevant `... used` field and the extra points the chip added in its points field. The Gameweek column of the points workbook keeps the full score including the chip.
 
 Google Sheets can be added later by replacing the file-reading boundary in `utils/data_loader.py`; the rest of the analytics uses the normalized `DashboardData` structure.
 
@@ -75,7 +75,7 @@ utils/
   data_loader.py
   calculations.py
   chart_helpers.py
-pages/
+views/
   overview.py
   position_trend.py
   performance.py

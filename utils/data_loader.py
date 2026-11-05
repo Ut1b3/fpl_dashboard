@@ -189,32 +189,25 @@ def load_dashboard_data(points_path: str | Path, chips_path: str | Path) -> Dash
             continue
         score_row = score_index[key]
         workbook_score = float(scores.at[score_row, "adjusted_gw_points"])
-        if chip["chip_type"] == "triple_cap":
-            actual_points = chip["actual_points"]
-            if pd.isna(actual_points):
-                scores.at[score_row, "podium_points"] = np.nan
-                chips.at[chip_index, "usage_status"] = "review: actual points missing"
-                validation.append(f"{manager}: Triple Captain at GW{gameweek} is missing chip-free actual points.")
-                continue
-            bonus = workbook_score - actual_points
-            if bonus < 0:
-                scores.at[score_row, "podium_points"] = np.nan
-                chips.at[chip_index, "usage_status"] = "review: inconsistent score"
-                validation.append(
-                    f"{manager}: Triple Captain at GW{gameweek} records {actual_points:g} actual points, "
-                    f"above the workbook score {workbook_score:g}."
-                )
-                continue
-            scores.at[score_row, "podium_points"] = actual_points
-            scores.at[score_row, "chip_bonus"] += bonus
-            chips.at[chip_index, "chip_bonus"] = bonus
-        else:
+        chip_name = "Triple Captain" if chip["chip_type"] == "triple_cap" else "Bench Boost"
+        # The chip points column holds the extra points the chip added to the Gameweek.
+        bonus = chip["actual_points"]
+        if pd.isna(bonus):
             scores.at[score_row, "podium_points"] = np.nan
-            chips.at[chip_index, "usage_status"] = "review: Bench Boost scoring convention unverified"
+            chips.at[chip_index, "usage_status"] = "review: chip points missing"
+            validation.append(f"{manager}: {chip_name} at GW{gameweek} is missing its extra chip points.")
+            continue
+        if bonus < 0 or bonus > workbook_score:
+            scores.at[score_row, "podium_points"] = np.nan
+            chips.at[chip_index, "usage_status"] = "review: inconsistent score"
             validation.append(
-                f"{manager}: Bench Boost at GW{gameweek} needs administrator review; "
-                "the workbook has no verified convention for the recorded bench points."
+                f"{manager}: {chip_name} at GW{gameweek} records {bonus:g} extra points, "
+                f"outside the workbook score of {workbook_score:g}."
             )
+            continue
+        if not pd.isna(scores.at[score_row, "podium_points"]):
+            scores.at[score_row, "podium_points"] -= bonus
+        chips.at[chip_index, "chip_bonus"] = bonus
 
     # Keep the source workbook score as the final adjusted total; derive the bonus
     # after chip-free scores are substituted so scoring is never added twice.

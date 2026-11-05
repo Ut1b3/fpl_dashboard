@@ -16,17 +16,14 @@ def heading(title: str, subtitle: str) -> None:
 
 
 def metric_cards(items: list[tuple[str, str, str | None]]) -> None:
-    per_row = 5
-    for start in range(0, len(items), per_row):
-        chunk = items[start:start + per_row]
-        cols = st.columns(per_row)
-        for column, (label, value, delta) in zip(cols, chunk):
-            delta_html = f'<div class="kpi-delta">{html.escape(delta)}</div>' if delta else ""
-            column.markdown(
-                f'<div class="kpi-card"><div class="kpi-label">{html.escape(label)}</div>'
-                f'<div class="kpi-value">{html.escape(value)}</div>{delta_html}</div>',
-                unsafe_allow_html=True,
-            )
+    cards = []
+    for label, value, delta in items:
+        delta_html = f'<div class="kpi-delta">{html.escape(delta)}</div>' if delta else ""
+        cards.append(
+            f'<div class="kpi-card"><div class="kpi-label">{html.escape(label)}</div>'
+            f'<div class="kpi-value">{html.escape(value)}</div>{delta_html}</div>'
+        )
+    st.markdown(f'<div class="kpi-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
 def render_chart(fig, key: str | None = None) -> None:

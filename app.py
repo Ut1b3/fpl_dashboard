@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 import streamlit as st
@@ -55,24 +56,27 @@ h1,h2,h3,h4 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -.02em; 
 div[data-testid="stVerticalBlock"] > div:has(> div > .stPlotlyChart) { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: .5rem; }
 .stCaption, [data-testid="stCaptionContainer"] { color: #e6d6f5; }
 button[kind="primary"], .stDownloadButton button { background: #00ff85; color: #37003c; border: 0; font-weight: 700; }
-@media (max-width: 700px) { .block-container { padding: 1rem .7rem 2rem; } .kpi-card { min-height: 95px; } }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .8rem; margin-bottom: .6rem; }
+.kpi-grid .kpi-card { margin-bottom: 0; }
+@media (max-width: 700px) {
+  .block-container { padding: 3.2rem .6rem 2rem; }
+  .page-title { font-size: 1.6rem; border-left-width: 5px; }
+  .page-subtitle { font-size: .9rem; margin-bottom: 1rem; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .kpi-card { min-height: 0; padding: .6rem .7rem; }
+  .kpi-label { font-size: .65rem; }
+  .kpi-value { font-size: 1.1rem; }
+  .kpi-delta { font-size: .68rem; }
+  h4 { font-size: 1.1rem; }
+  div[data-testid="stVerticalBlock"] > div:has(> div > .stPlotlyChart) { padding: .2rem; }
+  [data-testid="stHorizontalBlock"] { gap: .5rem; }
+}
 </style>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("## ⚽ FPL Analytics")
     st.caption("Mini-league • Current season")
-    page = st.radio(
-        "Explore",
-        [
-            "League overview", "Historical position trend", "Performance analytics",
-            "Cumulative points & title race", "Manager comparison", "Gameweek centre",
-            "Podium analytics", "Chip analytics", "Records & achievements", "Season projections",
-        ],
-        label_visibility="collapsed",
-    )
-    st.divider()
-    st.caption("Dark mode · Interactive charts")
 
 try:
     dashboard = load_data()
@@ -85,33 +89,39 @@ with st.sidebar:
     st.caption(f"Updated {dashboard.updated_at.strftime('%d %b %Y, %H:%M')}")
     st.caption(f"{len(dashboard.managers)} managers · {len(dashboard.completed_gameweeks)} completed GWs")
 
-if dashboard.validation:
-    with st.expander(f"Data validation notices ({len(dashboard.validation)})", expanded=False):
-        for notice in dashboard.validation:
-            st.warning(notice)
+PAGES = [
+    ("League overview", "overview", "🏠"),
+    ("Historical position trend", "position_trend", "📈"),
+    ("Performance analytics", "performance", "📊"),
+    ("Cumulative points & title race", "cumulative", "🏁"),
+    ("Manager comparison", "comparison", "⚖️"),
+    ("Gameweek centre", "gameweek", "📅"),
+    ("Podium analytics", "podium", "🥇"),
+    ("Gameweek winners", "winners", "🏆"),
+    ("Notable performances", "notable", "⭐"),
+    ("Chip analytics", "chips", "🃏"),
+    ("Records & achievements", "records", "🎖️"),
+    ("Season projections", "projections", "🔮"),
+]
 
-if page == "League overview":
-    from pages.overview import render
-elif page == "Historical position trend":
-    from pages.position_trend import render
-elif page == "Performance analytics":
-    from pages.performance import render
-elif page == "Cumulative points & title race":
-    from pages.cumulative import render
-elif page == "Manager comparison":
-    from pages.comparison import render
-elif page == "Gameweek centre":
-    from pages.gameweek import render
-elif page == "Podium analytics":
-    from pages.podium import render
-elif page == "Chip analytics":
-    from pages.chips import render
-elif page == "Records & achievements":
-    from pages.records import render
-else:
-    from pages.projections import render
 
-render(dashboard)
+def _make_page(module_name: str):
+    def run() -> None:
+        if dashboard.validation:
+            with st.expander(f"Data validation notices ({len(dashboard.validation)})", expanded=False):
+                for notice in dashboard.validation:
+                    st.warning(notice)
+        importlib.import_module(f"views.{module_name}").render(dashboard)
+    run.__name__ = f"page_{module_name}"
+    return run
+
+
+navigation = st.navigation([
+    st.Page(_make_page(module), title=title, icon=icon,
+            **({"default": True} if module == "overview" else {"url_path": module}))
+    for title, module, icon in PAGES
+])
+navigation.run()
 
 with st.sidebar:
     st.markdown("---")

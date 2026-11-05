@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from pages.common import heading, run_standalone_page
+from views.common import heading, run_standalone_page
 from utils.calculations import comeback_table, longest_winning_streaks, streaks
 from utils.data_loader import DashboardData
 
@@ -27,9 +27,13 @@ def render(data: DashboardData) -> None:
         ("Most podium appearances", _record_holder(data.podium_table, "appearances", "podiums")),
         ("Most consistent", f"{consistency.iloc[0]['manager']} · lowest CV"),
         ("Most volatile", f"{volatility.iloc[0]['manager']} · highest CV"),
-        ("Longest above-average streak", _streak_holder(streak, "longest_above", "weeks")),
+        ("Longest above-average run", _streak_holder(streak, "longest_above", "weeks")),
+        ("Most above-average weeks", _record_holder(data.stats, "above_average_weeks", "weeks")),
+        ("Longest time in 1st place", _longest_run(scores, "first")),
+        ("Longest time in last place", _longest_run(scores, "last")),
         ("Longest winning streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
         ("Biggest improvement between GWs", _biggest_improvement(scores)),
+        ("Biggest drop between GWs", _biggest_drop(scores)),
         ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['points_recovered']:.0f} pts"),
         ("Largest first-second gap", f"{_max_first_second_gap(scores):.0f} pts"),
     ]
@@ -68,6 +72,38 @@ def _biggest_improvement(scores: pd.DataFrame) -> str:
     ordered["change"] = ordered.groupby("manager")["podium_points"].diff()
     row = ordered.loc[ordered["change"].idxmax()]
     return f"{row['manager']} · +{row['change']:.0f} pts (GW{int(row['gameweek'])})"
+
+
+def _biggest_drop(scores: pd.DataFrame) -> str:
+    ordered = scores.sort_values(["manager", "gameweek"]).copy()
+    ordered["change"] = ordered.groupby("manager")["podium_points"].diff()
+    row = ordered.loc[ordered["change"].idxmin()]
+    return f"{row['manager']} · {row['change']:.0f} pts (GW{int(row['gameweek'])})"
+
+
+def _longest_run(scores: pd.DataFrame, place: str) -> str:
+    best_length, holders = 0, []
+    for manager, frame in scores.sort_values("gameweek").groupby("manager"):
+        run = longest = 0
+        start = best_start = None
+        for _, row in frame.iterrows():
+            week_scores = scores[scores["gameweek"] == row["gameweek"]]["cumulative_points"]
+            target = week_scores.max() if place == "first" else week_scores.min()
+            if row["cumulative_points"] == target:
+                run += 1
+                start = row["gameweek"] if run == 1 else start
+                if run > longest:
+                    longest, best_start = run, start
+            else:
+                run = 0
+        if longest and longest >= best_length:
+            if longest > best_length:
+                holders = []
+            best_length = longest
+            holders.append(f"{manager} (GW{int(best_start)}–GW{int(best_start) + longest - 1})")
+    if not holders:
+        return "—"
+    return f"{', '.join(holders)} · {best_length} weeks"
 
 
 def _max_first_second_gap(scores: pd.DataFrame) -> float:

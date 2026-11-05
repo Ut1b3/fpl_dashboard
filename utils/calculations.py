@@ -83,7 +83,7 @@ def longest_winning_streaks(scores: pd.DataFrame) -> pd.DataFrame:
 
 def comeback_table(scores: pd.DataFrame) -> pd.DataFrame:
     cumulative = scores.pivot(index="gameweek", columns="manager", values="cumulative_points").sort_index()
-    gaps = cumulative.max(axis=1).to_frame("leader_points") - cumulative
+    gaps = cumulative.rsub(cumulative.max(axis=1), axis=0)
     start = gaps.iloc[0]
     end = gaps.iloc[-1]
     return pd.DataFrame({

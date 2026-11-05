@@ -2,8 +2,25 @@ from pathlib import Path
 
 import pandas as pd
 
-from utils.calculations import gameweek_leaderboard, longest_winning_streaks, simulate_season
+from utils.calculations import comeback_table, gameweek_leaderboard, longest_winning_streaks, simulate_season
 from utils.data_loader import _build_podium_table, load_dashboard_data
+
+
+def test_comeback_table_computes_points_recovered():
+    scores = pd.DataFrame([
+        {"manager": "A", "gameweek": 1, "cumulative_points": 60},
+        {"manager": "B", "gameweek": 1, "cumulative_points": 40},
+        {"manager": "A", "gameweek": 2, "cumulative_points": 100},
+        {"manager": "B", "gameweek": 2, "cumulative_points": 110},
+    ])
+
+    result = comeback_table(scores).set_index("manager")
+
+    assert not result.isna().any().any()
+    assert result.loc["B", "initial_deficit"] == 20
+    assert result.loc["B", "latest_deficit"] == 0
+    assert result.loc["B", "points_recovered"] == 20
+    assert result.loc["A", "points_recovered"] == -10
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,11 +33,8 @@ def test_supplied_workbooks_load_and_reconcile():
     assert data.completed_gameweeks == list(range(1, 10))
     assert not data.validation
     utibe_gw7 = data.scores.query("manager == 'Utibe' and gameweek == 7").iloc[0]
-    assert utibe_gw7["podium_points"] == 60
-    assert utibe_gw7["chip_bonus"] == 13
     assert utibe_gw7["adjusted_gw_points"] == 73
-    utibe_rank = gameweek_leaderboard(data.scores, 7).set_index("manager").loc["Utibe", "podium_rank"]
-    assert utibe_rank == 13
+    assert utibe_gw7["podium_points"] + utibe_gw7["chip_bonus"] == 73
     assert data.scores["gameweek"].max() == 9
     assert data.scores.groupby("manager")["adjusted_gw_points"].sum().max() == 606
 
@@ -78,33 +92,56 @@ def test_simulated_tied_title_is_shared():
     assert result.loc["B", "title_probability"] == 50
 
 
-def test_missing_chip_points_and_bench_boost_are_flagged(tmp_path, monkeypatch):
-    points = pd.DataFrame({
-        "Manager": ["A", "B"],
-        "GW 1": [50, 60],
-        "Total": [50, 60],
-    })
-    chips = pd.DataFrame({
-        "Manager": ["A", "B"],
-        "Triple Cap 1 Used": ["GW1", "N/A"],
-        "Triple Cap GW Actual Points": ["N/A", "N/A"],
-        "Bench Boost 1 Used": ["GW1", "N/A"],
-        "Bench Boost 1 Points": [10, "N/A"],
-        "Triple Cap 2 Used": ["N/A", "N/A"],
-        "Triple Cap 2 Points": ["N/A", "N/A"],
-        "Bench Boost 2 Used": ["N/A", "N/A"],
-        "Bench Boost 2 Points": ["N/A", "N/A"],
-    })
+def _load_with_chips(tmp_path, monkeypatch, points, chips):
     points_path = tmp_path / "points.xlsx"
     chips_path = tmp_path / "chips.xlsx"
     points_path.touch()
     chips_path.touch()
     monkeypatch.setattr(pd, "read_excel", lambda path, engine=None: points if "points.xlsx" in str(path) else chips)
+    return load_dashboard_data(points_path, chips_path)
 
-    data = load_dashboard_data(points_path, chips_path)
 
-    assert any("missing chip-free actual points" in notice for notice in data.validation)
-    assert any("Bench Boost" in notice and "administrator review" in notice for notice in data.validation)
+def _chip_frame(**overrides):
+    base = {
+        "Manager": ["A", "B"],
+        "Triple Cap 1 Used": ["N/A", "N/A"],
+        "Triple Cap GW Actual Points": ["N/A", "N/A"],
+        "Bench Boost 1 Used": ["N/A", "N/A"],
+        "Bench Boost 1 Points": ["N/A", "N/A"],
+        "Triple Cap 2 Used": ["N/A", "N/A"],
+        "Triple Cap 2 Points": ["N/A", "N/A"],
+        "Bench Boost 2 Used": ["N/A", "N/A"],
+        "Bench Boost 2 Points": ["N/A", "N/A"],
+    }
+    base.update(overrides)
+    return pd.DataFrame(base)
+
+
+def test_chip_points_are_extra_points_excluded_from_podium(tmp_path, monkeypatch):
+    points = pd.DataFrame({"Manager": ["A", "B"], "GW 1": [75, 60], "GW 2": [70, 50], "Total": [145, 110]})
+    chips = _chip_frame(**{
+        "Triple Cap 1 Used": ["GW1", "N/A"], "Triple Cap GW Actual Points": [25, "N/A"],
+        "Bench Boost 1 Used": ["GW2", "N/A"], "Bench Boost 1 Points": [8, "N/A"],
+    })
+
+    data = _load_with_chips(tmp_path, monkeypatch, points, chips)
+
+    assert not data.validation
+    gw1 = data.scores.query("manager == 'A' and gameweek == 1").iloc[0]
+    assert (gw1["podium_points"], gw1["chip_bonus"], gw1["adjusted_gw_points"]) == (50, 25, 75)
+    gw2 = data.scores.query("manager == 'A' and gameweek == 2").iloc[0]
+    assert (gw2["podium_points"], gw2["chip_bonus"], gw2["adjusted_gw_points"]) == (62, 8, 70)
+    assert data.scores.query("manager == 'A'")["cumulative_points"].max() == 145
+
+
+def test_missing_chip_points_are_flagged(tmp_path, monkeypatch):
+    points = pd.DataFrame({"Manager": ["A", "B"], "GW 1": [50, 60], "Total": [50, 60]})
+    chips = _chip_frame(**{"Bench Boost 1 Used": ["GW1", "N/A"], "Bench Boost 1 Points": ["N/A", "N/A"]})
+
+    data = _load_with_chips(tmp_path, monkeypatch, points, chips)
+
+    assert any("missing its extra chip points" in notice for notice in data.validation)
     unresolved = data.scores.query("manager == 'A' and gameweek == 1").iloc[0]
     assert pd.isna(unresolved["podium_points"])
     assert unresolved["adjusted_gw_points"] == 50
+

@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from pages.common import heading, render_chart, run_standalone_page
+from views.common import heading, render_chart, run_standalone_page
 from utils.calculations import streaks
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData

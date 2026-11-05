@@ -18,12 +18,13 @@ def style_figure(fig: go.Figure, height: int = 420) -> go.Figure:
         plot_bgcolor="rgba(0,0,0,0)",
         font={"family": "Inter, Segoe UI, sans-serif", "color": "#ffffff"},
         height=height,
-        margin={"l": 22, "r": 22, "t": 55, "b": 24},
+        margin={"l": 10, "r": 10, "t": 55, "b": 24},
+        title={"font": {"size": 16}},
         legend={"orientation": "h", "y": -0.22, "x": 0},
         hoverlabel={"bgcolor": "#37003c", "font_size": 13},
     )
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(255,255,255,.16)", zerolinecolor="rgba(255,255,255,.25)")
-    fig.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,.16)", zerolinecolor="rgba(255,255,255,.25)")
+    fig.update_xaxes(showgrid=True, automargin=True, gridcolor="rgba(255,255,255,.16)", zerolinecolor="rgba(255,255,255,.25)")
+    fig.update_yaxes(showgrid=True, automargin=True, gridcolor="rgba(255,255,255,.16)", zerolinecolor="rgba(255,255,255,.25)")
     return fig
 
 
