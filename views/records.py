@@ -36,6 +36,11 @@ def render(data: DashboardData) -> None:
         ("Biggest drop between GWs", _biggest_drop(scores)),
         ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['points_recovered']:.0f} pts"),
         ("Largest first-second gap", f"{_max_first_second_gap(scores):.0f} pts"),
+        ("Most GWs in weekly top 3", _top_n_record(scores, "podium_points", 3, "count")),
+        ("Most consecutive GWs in weekly top 3", _top_n_record(scores, "podium_points", 3, "run")),
+        ("Most GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "count")),
+        ("Most consecutive GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "run")),
+        ("Most GWs in cumulative 1st place", _top_n_record(scores, "cumulative_points", 1, "count")),
     ]
     st.dataframe(pd.DataFrame(records, columns=["Record", "Holder"]), use_container_width=True, hide_index=True)
     st.markdown("#### Manager achievements")
@@ -52,7 +57,41 @@ def render(data: DashboardData) -> None:
             achievements.append((name, "The Most Volatile"))
         if row["appearances"] == data.stats["appearances"].max():
             achievements.append((name, "The Podium Specialist"))
+    for label, column, n, mode in [
+        ("Most GWs in Weekly Top 3", "podium_points", 3, "count"),
+        ("Longest Weekly Top 3 Run", "podium_points", 3, "run"),
+        ("Most GWs in Cumulative Top 3", "cumulative_points", 3, "count"),
+        ("Longest Cumulative Top 3 Run", "cumulative_points", 3, "run"),
+        ("Most GWs in Cumulative 1st Place", "cumulative_points", 1, "count"),
+    ]:
+        values = _top_n_values(scores, column, n, mode)
+        if values.max() > 0:
+            achievements.extend((name, label) for name in values[values == values.max()].index)
     st.dataframe(pd.DataFrame(achievements, columns=["Manager", "Achievement"]), use_container_width=True, hide_index=True)
+
+
+def _top_n_values(scores: pd.DataFrame, column: str, n: int, mode: str) -> pd.Series:
+    ranked = scores.sort_values(["manager", "gameweek"]).copy()
+    ranked["in_top"] = ranked.groupby("gameweek")[column].rank(method="min", ascending=False) <= n
+    if mode == "count":
+        return ranked.groupby("manager")["in_top"].sum().astype(int)
+
+    def longest(flags: pd.Series) -> int:
+        best = run = 0
+        for flag in flags:
+            run = run + 1 if flag else 0
+            best = max(best, run)
+        return best
+
+    return ranked.groupby("manager")["in_top"].apply(longest)
+
+
+def _top_n_record(scores: pd.DataFrame, column: str, n: int, mode: str) -> str:
+    values = _top_n_values(scores, column, n, mode)
+    best = values.max()
+    if best == 0:
+        return "—"
+    return f"{', '.join(values[values == best].index)} · {best} GWs"
 
 
 def _record_holder(frame, column: str, suffix: str) -> str:
