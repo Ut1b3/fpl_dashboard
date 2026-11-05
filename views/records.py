@@ -30,16 +30,16 @@ def render(data: DashboardData) -> None:
         ("Most volatile", f"{volatility.iloc[0]['manager']} · highest CV"),
         ("Longest above-average run", _streak_holder(streak, "longest_above", "weeks")),
         ("Most above-average weeks", _record_holder(data.stats, "above_average_weeks", "weeks")),
-        ("Longest time in 1st place", _longest_run(scores, "first")),
+        ("Most consecutive cumulative GWs in 1st place", _longest_run(scores, "first")),
         ("Most GWs in cumulative 1st place", _top_n_record(scores, "cumulative_points", 1, "count")),
+        ("Most GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "count")),
+        ("Most consecutive GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "run")),
         ("Longest time in last place", _longest_run(scores, "last")),
         ("Longest winning streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
         ("Biggest improvement between GWs", _biggest_improvement(scores)),
         ("Biggest drop between GWs", _biggest_drop(scores)),
         ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['points_recovered']:.0f} pts"),
         ("Largest first-second gap", f"{_max_first_second_gap(scores):.0f} pts"),
-        ("Most GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "count")),
-        ("Most consecutive GWs in cumulative top 3", _top_n_record(scores, "cumulative_points", 3, "run")),
     ]
     st.dataframe(pd.DataFrame(records, columns=["Record", "Holder"]), use_container_width=True, hide_index=True)
     st.markdown("#### Manager achievements")
