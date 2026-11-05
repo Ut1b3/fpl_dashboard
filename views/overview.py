@@ -56,7 +56,12 @@ def render(data: DashboardData) -> None:
         "adjusted_gw_points", "points_behind_leader", "movement",
     ]]
     shown.columns = ["Rank", "Manager", "Total points", "Average points", "Latest GW", "Behind leader", "Movement"]
-    styled = shown.style.map(_movement_style, subset=["Movement"]).format({"Movement": lambda v: "" if pd.isna(v) else f"{int(v):+d}"})
+    styled = shown.style.map(_movement_style, subset=["Movement"]).format({
+        "Movement": lambda v: "" if pd.isna(v) else f"{int(v):+d}",
+        "Total points": "{:.0f}",
+        "Latest GW": "{:.0f}",
+        "Behind leader": "{:.0f}",
+    })
     st.dataframe(styled, use_container_width=True, hide_index=True)
     csv = shown.to_csv(index=False).encode("utf-8")
     st.download_button("Download standings CSV", csv, "fpl_leaderboard.csv", "text/csv")
