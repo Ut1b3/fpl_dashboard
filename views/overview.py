@@ -59,6 +59,7 @@ def render(data: DashboardData) -> None:
     styled = shown.style.map(_movement_style, subset=["Movement"]).format({
         "Movement": lambda v: "" if pd.isna(v) else f"{int(v):+d}",
         "Total points": "{:.0f}",
+        "Average points": "{:.1f}",
         "Latest GW": "{:.0f}",
         "Behind leader": "{:.0f}",
     })

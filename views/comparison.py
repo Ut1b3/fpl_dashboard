@@ -28,7 +28,7 @@ def render(data: DashboardData) -> None:
         "standard_deviation": "Std dev", "coefficient_of_variation": "CV",
         "gameweek_wins": "GW wins", "appearances": "Podiums",
         "above_average_pct": "Above avg %", "best_league_position": "Best rank",
-    }).round(2), use_container_width=True, hide_index=True)
+    }).round(1), use_container_width=True, hide_index=True)
     subset = data.scores[data.scores["manager"].isin(managers)]
     left, right = st.columns(2)
     with left:

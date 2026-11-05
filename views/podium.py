@@ -17,7 +17,7 @@ def render(data: DashboardData) -> None:
         "seconds": "Second-place shares", "thirds": "Third-place shares",
         "appearances": "Podium appearances", "podium_frequency_pct": "Podium frequency %",
     })
-    st.dataframe(display.round(2), use_container_width=True, hide_index=True)
+    st.dataframe(display.round(1), use_container_width=True, hide_index=True)
     fig = px.bar(table.sort_values("podium_points"), x="podium_points", y="manager", orientation="h",
                  color="podium_points", color_continuous_scale=["#8f6bb3", "#04f5ff"],
                  title="Total podium points")
