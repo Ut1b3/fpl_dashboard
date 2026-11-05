@@ -109,12 +109,14 @@ def render(data: DashboardData) -> None:
     table["Biggest drop"] = table.apply(
         lambda r: "—" if pd.isna(r["biggest_drop"]) else f"{r['biggest_drop']:+.0f} (GW{r['drop_gw']})", axis=1)
     table["Best position"] = table.apply(lambda r: f"{r['best_position']} (GW{r['best_position_gw']})", axis=1)
+    table["above_weeks"] = table["manager"].map(data.stats.set_index("manager")["above_average_weeks"]).astype(int)
     display = table[[
         "manager", "Best week", "Worst week", "Biggest jump", "Biggest drop", "Best position",
-        "gw_wins", "podiums", "longest_win_streak", "longest_above",
+        "gw_wins", "podiums", "longest_win_streak", "longest_above", "above_weeks",
     ]].rename(columns={
         "manager": "Manager", "gw_wins": "GW wins", "podiums": "Podiums",
         "longest_win_streak": "Win streak", "longest_above": "Above-avg run",
+        "above_weeks": "Above-avg weeks",
     })
     st.dataframe(display, use_container_width=True, hide_index=True)
     st.caption("Scores exclude chip bonus points. Jumps and drops compare each Gameweek with the previous one.")
