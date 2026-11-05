@@ -1,0 +1,83 @@
+from __future__ import annotations
+
+import pandas as pd
+import streamlit as st
+
+from pages.common import heading, run_standalone_page
+from utils.calculations import comeback_table, longest_winning_streaks, streaks
+from utils.data_loader import DashboardData
+
+
+def render(data: DashboardData) -> None:
+    heading("Records and achievements", "Competition records update automatically as new Gameweeks are added.")
+    scores = data.scores
+    high = scores.loc[scores["podium_points"].idxmax()]
+    low = scores.loc[scores["podium_points"].idxmin()]
+    current = scores[scores["gameweek"] == max(data.completed_gameweeks)].sort_values("cumulative_points", ascending=False).iloc[0]
+    consistency = data.stats.sort_values("coefficient_of_variation")
+    volatility = data.stats.sort_values("coefficient_of_variation", ascending=False)
+    streak = streaks(scores)
+    winning_streak = longest_winning_streaks(scores)
+    comeback = comeback_table(scores)
+    records = [
+        ("Highest single-GW score", f"{high['manager']} · {high['podium_points']:.0f} (GW{int(high['gameweek'])})"),
+        ("Lowest single-GW score", f"{low['manager']} · {low['podium_points']:.0f} (GW{int(low['gameweek'])})"),
+        ("Highest cumulative total", f"{current['manager']} · {current['cumulative_points']:.0f} pts"),
+        ("Most Gameweek wins", _record_holder(data.stats, "gameweek_wins", "wins")),
+        ("Most podium appearances", _record_holder(data.podium_table, "appearances", "podiums")),
+        ("Most consistent", f"{consistency.iloc[0]['manager']} · lowest CV"),
+        ("Most volatile", f"{volatility.iloc[0]['manager']} · highest CV"),
+        ("Longest above-average streak", _streak_holder(streak, "longest_above", "weeks")),
+        ("Longest winning streak", _record_holder(winning_streak, "longest_winning_streak", "GWs")),
+        ("Biggest improvement between GWs", _biggest_improvement(scores)),
+        ("Biggest points comeback", f"{comeback.iloc[0]['manager']} · recovered {comeback.iloc[0]['points_recovered']:.0f} pts"),
+        ("Largest first-second gap", f"{_max_first_second_gap(scores):.0f} pts"),
+    ]
+    st.dataframe(pd.DataFrame(records, columns=["Record", "Holder"]), use_container_width=True, hide_index=True)
+    st.markdown("#### Manager achievements")
+    achievements = []
+    for _, row in data.stats.iterrows():
+        name = row["manager"]
+        if row["coefficient_of_variation"] == consistency.iloc[0]["coefficient_of_variation"]:
+            achievements.append((name, "The Consistent One"))
+        if name == comeback.iloc[0]["manager"]:
+            achievements.append((name, "The Comeback King/Queen"))
+        if row["gameweek_wins"] == data.stats["gameweek_wins"].max():
+            achievements.append((name, "The GW Specialist"))
+        if row["coefficient_of_variation"] == volatility.iloc[0]["coefficient_of_variation"]:
+            achievements.append((name, "The Most Volatile"))
+        if row["appearances"] == data.stats["appearances"].max():
+            achievements.append((name, "The Podium Specialist"))
+    st.dataframe(pd.DataFrame(achievements, columns=["Manager", "Achievement"]), use_container_width=True, hide_index=True)
+
+
+def _record_holder(frame, column: str, suffix: str) -> str:
+    highest = frame[column].max()
+    names = ", ".join(frame.loc[frame[column] == highest, "manager"].tolist())
+    return f"{names} · {highest:g} {suffix}"
+
+
+def _streak_holder(frame, column: str, suffix: str) -> str:
+    highest = frame[column].max()
+    names = ", ".join(frame.loc[frame[column] == highest, "manager"].tolist())
+    return f"{names} · {highest} {suffix}"
+
+
+def _biggest_improvement(scores: pd.DataFrame) -> str:
+    ordered = scores.sort_values(["manager", "gameweek"]).copy()
+    ordered["change"] = ordered.groupby("manager")["podium_points"].diff()
+    row = ordered.loc[ordered["change"].idxmax()]
+    return f"{row['manager']} · +{row['change']:.0f} pts (GW{int(row['gameweek'])})"
+
+
+def _max_first_second_gap(scores: pd.DataFrame) -> float:
+    gaps = []
+    for _, group in scores.groupby("gameweek"):
+        totals = group["cumulative_points"].nlargest(2).tolist()
+        if len(totals) > 1:
+            gaps.append(totals[0] - totals[1])
+    return max(gaps, default=0.0)
+
+
+if __name__ == "__main__":
+    run_standalone_page(render)
