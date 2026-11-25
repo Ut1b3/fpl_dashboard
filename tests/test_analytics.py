@@ -4,6 +4,7 @@ import pandas as pd
 
 from utils.calculations import comeback_table, gameweek_leaderboard, longest_winning_streaks, simulate_season
 from utils.data_loader import _build_podium_table, load_dashboard_data
+from views.records import _gameweek_records
 
 
 def test_comeback_table_computes_points_recovered():
@@ -26,6 +27,48 @@ def test_comeback_table_computes_points_recovered():
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_gameweek_records_use_weekly_means_and_lowest_relative_spread():
+    scores = pd.DataFrame([
+        {"gameweek": week, "podium_points": points}
+        for week, points_list in [
+            (1, [80, 40]), (2, [90, 70]), (3, [20, 20]), (4, [90, 70])
+        ]
+        for points in points_list
+    ])
+
+    assert _gameweek_records(scores) == (
+        "GW2, GW4 - 80.0 points average",
+        "GW3 - 20.0 points average",
+        "GW3 - 0.0% CV",
+    )
+
+
+def test_gameweek_records_exclude_incomplete_and_undefined_cv():
+    scores = pd.DataFrame([
+        {"gameweek": 1, "podium_points": 100},
+        {"gameweek": 1, "podium_points": float("nan")},
+        {"gameweek": 2, "podium_points": 0},
+        {"gameweek": 2, "podium_points": 0},
+    ])
+
+    assert _gameweek_records(scores) == (
+        "GW2 - 0.0 points average",
+        "GW2 - 0.0 points average",
+        "—",
+    )
+
+
+def test_most_competitive_gameweek_uses_relative_not_absolute_spread():
+    scores = pd.DataFrame([
+        {"gameweek": 1, "podium_points": 40},
+        {"gameweek": 1, "podium_points": 60},
+        {"gameweek": 2, "podium_points": 90},
+        {"gameweek": 2, "podium_points": 110},
+    ])
+
+    assert _gameweek_records(scores)[2] == "GW2 - 14.1% CV"
 
 
 def test_supplied_workbooks_load_and_reconcile():
