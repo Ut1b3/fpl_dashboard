@@ -33,7 +33,7 @@ def test_gameweek_records_use_weekly_means_and_lowest_relative_spread():
     scores = pd.DataFrame([
         {"gameweek": week, "podium_points": points}
         for week, points_list in [
-            (1, [80, 40]), (2, [90, 70]), (3, [20, 20]), (4, [90, 70])
+            (1, [80, 40]), (2, [90, 70]), (3, [20, 20]), (4, [90, 70]), (5, [80, 40])
         ]
         for points in points_list
     ])
@@ -42,6 +42,7 @@ def test_gameweek_records_use_weekly_means_and_lowest_relative_spread():
         "GW2, GW4 - 80.0 points average",
         "GW3 - 20.0 points average",
         "GW3 - 0.0% CV",
+        "GW1, GW5 - 47.1% CV",
     )
 
 
@@ -57,6 +58,7 @@ def test_gameweek_records_exclude_incomplete_and_undefined_cv():
         "GW2 - 0.0 points average",
         "GW2 - 0.0 points average",
         "—",
+        "—",
     )
 
 
@@ -69,6 +71,7 @@ def test_most_competitive_gameweek_uses_relative_not_absolute_spread():
     ])
 
     assert _gameweek_records(scores)[2] == "GW2 - 14.1% CV"
+    assert _gameweek_records(scores)[3] == "GW1 - 28.3% CV"
 
 
 def test_supplied_workbooks_load_and_reconcile():

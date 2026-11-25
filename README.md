@@ -25,7 +25,7 @@ Ties in overall standings use shared competition ranking (`1, 1, 3`). Tables use
 
 Performance and podium analytics use chip-free actual points. Overall positions and totals use adjusted points. Blank future Gameweeks are excluded; only fully populated Gameweeks are treated as completed.
 
-Records include the best and worst league-average Gameweeks and the most competitive Gameweek, defined as the lowest coefficient of variation (sample standard deviation divided by the mean) across managers' chip-free scores. Gameweeks with unresolved chip-free scores are excluded; a competitive Gameweek requires at least two scores and a positive mean.
+Records include the best and worst league-average Gameweeks and the most and least competitive Gameweeks, defined by the lowest and highest coefficient of variation (sample standard deviation divided by the mean) across managers' chip-free scores. Gameweeks with unresolved chip-free scores are excluded; a competitive Gameweek requires at least two scores and a positive mean.
 
 ## Local setup
 

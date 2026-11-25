@@ -19,7 +19,7 @@ def render(data: DashboardData) -> None:
     streak = streaks(scores)
     winning_streak = longest_winning_streaks(scores)
     comeback = comeback_table(scores).sort_values("total_recovered", ascending=False)
-    best_week, worst_week, competitive_week = _gameweek_records(scores)
+    best_week, worst_week, competitive_week, least_competitive_week = _gameweek_records(scores)
     records = [
         ("Highest single-GW score", f"{high['manager']} · {high['podium_points']:.0f} (GW{int(high['gameweek'])})"),
         ("Highest single-GW score to lose", _score_record(scores, "highest_losing")),
@@ -33,6 +33,7 @@ def render(data: DashboardData) -> None:
         ("Best Gameweek", best_week),
         ("Worst Gameweek", worst_week),
         ("Most competitive Gameweek", competitive_week),
+        ("Least competitive Gameweek", least_competitive_week),
         ("Most podium appearances", _record_holder(data.podium_table, "appearances", "podiums")),
         ("Most consecutive podium appearances", _top_n_record(scores, "podium_points", 3, "run")),
         ("Most consistent", f"{consistency.iloc[0]['manager']} · lowest CV"),
@@ -75,11 +76,11 @@ def render(data: DashboardData) -> None:
     st.dataframe(pd.DataFrame(achievements, columns=["Manager", "Achievement"]), use_container_width=True, hide_index=True)
 
 
-def _gameweek_records(scores: pd.DataFrame) -> tuple[str, str, str]:
+def _gameweek_records(scores: pd.DataFrame) -> tuple[str, str, str, str]:
     weekly = scores.groupby("gameweek")["podium_points"].agg(["mean", "std", "count", "size"])
     weekly = weekly[weekly["count"] == weekly["size"]]
     if weekly.empty:
-        return "—", "—", "—"
+        return "—", "—", "—", "—"
 
     def format_weeks(frame: pd.DataFrame, column: str, highest: bool, suffix: str) -> str:
         if frame.empty:
@@ -93,7 +94,8 @@ def _gameweek_records(scores: pd.DataFrame) -> tuple[str, str, str]:
     comparable = weekly[(weekly["mean"] > 0) & (weekly["count"] >= 2)].copy()
     comparable["cv"] = comparable["std"] / comparable["mean"] * 100
     competitive = format_weeks(comparable, "cv", False, "% CV")
-    return best, worst, competitive
+    least_competitive = format_weeks(comparable, "cv", True, "% CV")
+    return best, worst, competitive, least_competitive
 
 
 def _top_n_values(scores: pd.DataFrame, column: str, n: int, mode: str) -> pd.Series:
