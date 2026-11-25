@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import plotly.express as px
+import pandas as pd
 import streamlit as st
 
 from views.common import heading, metric_cards, render_chart, run_standalone_page, selected_week
-from utils.calculations import gameweek_leaderboard
+from utils.calculations import gameweek_leaderboard, gameweek_statistics
 from utils.chart_helpers import COLORS
 from utils.data_loader import DashboardData
 
@@ -18,13 +19,17 @@ def render(data: DashboardData) -> None:
         return
     leader = frame.iloc[0]
     median = frame["podium_points"].median()
+    cv = gameweek_statistics(frame).loc[week, "cv"]
     metric_cards([
         ("Gameweek winner", leader["manager"], f"{leader['podium_points']:.0f} actual pts"),
         ("Highest score", f"{frame['podium_points'].max():.0f}", None),
         ("Lowest score", f"{frame['podium_points'].min():.0f}", None),
         ("League average", f"{frame['podium_points'].mean():.1f}", None),
         ("League median", f"{median:.1f}", None),
+        ("Coefficient of variation", f"{cv:.1f}%" if pd.notna(cv) else "—", None),
     ])
+    if pd.isna(cv):
+        st.caption("Coefficient of variation requires all chip-free scores, at least two managers, and a positive average.")
     display = frame[["podium_rank", "manager", "podium_points", "chip_bonus", "adjusted_gw_points"]].copy()
     display.columns = ["Rank", "Manager", "Podium points", "Chip bonus", "Adjusted GW points"]
     st.dataframe(display, use_container_width=True, hide_index=True)

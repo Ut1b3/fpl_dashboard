@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from views.common import heading, run_standalone_page
-from utils.calculations import comeback_table, longest_winning_streaks, streaks
+from utils.calculations import comeback_table, gameweek_statistics, longest_winning_streaks, streaks
 from utils.data_loader import DashboardData
 
 
@@ -77,7 +77,7 @@ def render(data: DashboardData) -> None:
 
 
 def _gameweek_records(scores: pd.DataFrame) -> tuple[str, str, str, str]:
-    weekly = scores.groupby("gameweek")["podium_points"].agg(["mean", "std", "count", "size"])
+    weekly = gameweek_statistics(scores)
     weekly = weekly[weekly["count"] == weekly["size"]]
     if weekly.empty:
         return "—", "—", "—", "—"
@@ -91,8 +91,7 @@ def _gameweek_records(scores: pd.DataFrame) -> tuple[str, str, str, str]:
 
     best = format_weeks(weekly, "mean", True, " points average")
     worst = format_weeks(weekly, "mean", False, " points average")
-    comparable = weekly[(weekly["mean"] > 0) & (weekly["count"] >= 2)].copy()
-    comparable["cv"] = comparable["std"] / comparable["mean"] * 100
+    comparable = weekly.dropna(subset=["cv"])
     competitive = format_weeks(comparable, "cv", False, "% CV")
     least_competitive = format_weeks(comparable, "cv", True, "% CV")
     return best, worst, competitive, least_competitive

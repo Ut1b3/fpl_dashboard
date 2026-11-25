@@ -4,6 +4,13 @@ import numpy as np
 import pandas as pd
 
 
+def gameweek_statistics(scores: pd.DataFrame) -> pd.DataFrame:
+    weekly = scores.groupby("gameweek")["podium_points"].agg(["mean", "std", "count", "size"])
+    valid = (weekly["count"] == weekly["size"]) & (weekly["count"] >= 2) & (weekly["mean"] > 0)
+    weekly["cv"] = (weekly["std"] / weekly["mean"] * 100).where(valid)
+    return weekly
+
+
 def leaderboard(scores: pd.DataFrame, gameweek: int | None = None) -> pd.DataFrame:
     data = scores if gameweek is None else scores[scores["gameweek"] == gameweek]
     latest = int(data["gameweek"].max())

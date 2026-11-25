@@ -1,9 +1,12 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 
 from utils.calculations import comeback_table, gameweek_leaderboard, longest_winning_streaks, simulate_season
 from utils.data_loader import _build_podium_table, load_dashboard_data
+from views import gameweek
 from views.records import _gameweek_records
 
 
@@ -27,6 +30,36 @@ def test_comeback_table_computes_points_recovered():
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize(("points", "expected"), [
+    ([90, 110], "14.1%"),
+    ([0, 0], "—"),
+    ([100, float("nan")], "—"),
+    ([100], "—"),
+])
+def test_gameweek_centre_shows_selected_week_cv(monkeypatch, points, expected):
+    scores = pd.DataFrame([
+        {"manager": f"Manager {index}", "gameweek": week, "podium_points": value}
+        for week, values in [(1, [10, 10]), (2, points)]
+        for index, value in enumerate(values)
+    ])
+    cards = []
+
+    class CardsRendered(Exception):
+        pass
+
+    def capture_cards(items):
+        cards.extend(items)
+        raise CardsRendered
+
+    monkeypatch.setattr(gameweek, "heading", lambda *args: None)
+    monkeypatch.setattr(gameweek, "selected_week", lambda *args: 2)
+    monkeypatch.setattr(gameweek, "metric_cards", capture_cards)
+    with pytest.raises(CardsRendered):
+        gameweek.render(SimpleNamespace(scores=scores))
+
+    assert ("Coefficient of variation", expected, None) in cards
 
 
 def test_gameweek_records_use_weekly_means_and_lowest_relative_spread():
